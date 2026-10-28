@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>One AI</title>
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#12131a">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Hind:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ---------- Design tokens ---------- */
+:root{
+  --bg:#12131a; --panel:#1a1c27; --panel2:#222534; --line:#2d3142;
+  --text:#e8e9f0; --muted:#979cb0; --accent:#f2b134; --accent-ink:#1a1405;
+  --ok:#5fd0a0; --err:#ff7a7a; --r:14px;
+  --head:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --body:"Hind","Noto Sans Devanagari","Segoe UI",system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;margin:0}
+html{background:var(--bg)}
+body{font:16px/1.55 var(--body);color:var(--text);background:var(--bg);min-height:100vh}
+button,select,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2{font-family:var(--head);letter-spacing:-.01em}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+
+/* ---------- Header ---------- */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:18px 0}
+.brand{display:flex;align-items:center;gap:12px}
+.mark{width:38px;height:38px;border-radius:11px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font:700 22px var(--head)}
+.brand h1{font-size:26px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ---------- Buttons ---------- */
+.btn{border:1px solid var(--line);background:var(--panel2);padding:8px 14px;border-radius:10px;cursor:pointer;transition:border-color .15s,background .15s}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.ghost{background:transparent}
+.btn.ok{border-color:var(--ok);color:var(--ok)}
+
+/* ---------- Sections ---------- */
+section{margin-top:26px}
+h2{font-size:20px;margin-bottom:4px}
+.sub{color:var(--muted);font-size:14px;margin-bottom:14px}
+
+/* Launcher */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.card{display:flex;flex-direction:column;gap:2px;padding:14px 16px;border-radius:var(--r);background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--c,var(--accent));text-decoration:none;color:inherit;transition:background .15s,transform .15s}
+.card:hover{background:var(--panel2);transform:translateY(-2px)}
+.card b{font:600 17px var(--head)}
+.card span{font-size:13px;color:var(--muted)}
+
+/* Two-column layout */
+.cols{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:860px){.cols{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+.panel+.panel{margin-top:18px}
+
+/* Console */
+.bar{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center;margin:10px 0 12px;font-size:14px;color:var(--muted)}
+.bar label{display:flex;align-items:center;gap:6px}
+select,input[type=text],input[type=password],textarea{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:100%}
+.bar select{width:auto}
+textarea{min-height:64px;resize:vertical}
+.row{display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.status{font-size:14px;color:var(--muted);margin-left:auto}
+
+/* Mic button: the one expressive element; pulse only while listening */
+.mic{width:56px;height:56px;border-radius:50%;border:0;cursor:pointer;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;position:relative}
+.mic svg{width:26px;height:26px}
+.mic.on{background:var(--err);color:#fff}
+.mic.on::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:2px solid var(--err);animation:ring 1.2s ease-out infinite}
+@keyframes ring{from{opacity:.9;transform:scale(.9)}to{opacity:0;transform:scale(1.35)}}
+@media (prefers-reduced-motion:reduce){.mic.on::after{animation:none}.card{transition:none}}
+
+/* Output log */
+.log{margin:0 0 12px;display:flex;flex-direction:column;gap:10px;min-height:240px;max-height:52vh;overflow:auto}
+.entry{padding:10px 12px;border-radius:10px;background:var(--panel2);white-space:pre-wrap;word-break:break-word;font-size:15px}
+.entry{max-width:92%}
+.entry.you{background:var(--accent);color:var(--accent-ink);align-self:flex-end;max-width:85%}
+.tasks{list-style:none;padding:0;margin:10px 0 0;display:flex;flex-direction:column;gap:6px}
+.tasks li{display:flex;gap:8px;align-items:center}
+.tasks span{flex:1;word-break:break-word}
+.row input[type=text]{flex:1;min-width:0}
+.entry.err{border-left:3px solid var(--err)}
+.entry a{color:var(--accent)}
+.empty{color:var(--muted);font-size:14px}
+
+/* Settings + chips */
+.field{margin-top:12px}
+.field label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+.note{font-size:13px;color:var(--muted);margin-top:10px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.chip{border:1px solid var(--line);background:transparent;border-radius:999px;padding:4px 12px;font-size:13px;cursor:pointer}
+.chip:hover{border-color:var(--accent)}
+footer{margin:34px 0 28px;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ===== Header with built-in code copy / download buttons ===== -->
+  <header class="top">
+    <div class="brand"><div class="mark" aria-hidden="true">1</div><h1>One AI</h1></div>
+    <div class="actions">
+      <button class="btn" id="copyCode" type="button">Copy code</button>
+      <button class="btn ghost" id="dlCode" type="button">Download index.html</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- ===== Quick launch (filled by JS from the PLATFORMS list) ===== -->
+    <section aria-labelledby="launchH">
+      <h2 id="launchH">Launch an AI</h2>
+      <p class="sub">Opens in a new tab.</p>
+      <div class="grid" id="launchGrid"></div>
+    </section>
+
+    <div class="cols">
+      <!-- ===== Command console: type or speak ===== -->
+      <section class="panel" aria-labelledby="consH">
+        <h2 id="consH">Chat</h2>
+        <p class="sub">Chat in Hindi or English by typing or speaking. Commands such as upper:, timer 5 and ChatGPT खोलो run on your device.</p>
+        <div class="bar">
+          <label>Language
+            <select id="lang">
+              <option value="hi-IN">हिन्दी</option>
+              <option value="en-IN">English (India)</option>
+              <option value="en-US">English (US)</option>
+            </select>
+          </label>
+          <label><input type="checkbox" id="autoRun" checked> Run spoken commands automatically</label>
+          <label><input type="checkbox" id="speakOn" checked> Read replies aloud</label>
+        </div>
+        <div class="log" id="log" aria-live="polite"><p class="empty">Say hello to start.</p></div>
+        <textarea id="prompt" placeholder="Message One AI (Enter to send)" aria-label="Message"></textarea>
+        <div class="row">
+          <button class="mic" id="mic" type="button" aria-label="Start voice input" title="Speak">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+          </button>
+          <button class="btn primary" id="run" type="button">Run</button>
+          <button class="btn ghost" id="stop" type="button">Stop voice</button>
+          <button class="btn ghost" id="newChat" type="button">New chat</button>
+          <span class="status" id="status" role="status">Ready</span>
+        </div>
+        <div class="chips" id="chips"></div>
+        
+      </section>
+
+      <!-- ===== API settings ===== -->
+      <aside>
+        <section class="panel" aria-labelledby="apiH">
+          <h2 id="apiH">Your AI key</h2>
+          <p class="sub">Choose who answers your chat.</p>
+          <div class="field"><label for="provider">Provider</label>
+            <select id="provider"><option value="free">Free (Pollinations)</option><option value="openai">OpenAI</option><option value="gemini">Google Gemini</option></select></div>
+          <div class="field"><label for="model">Model</label><input type="text" id="model" autocomplete="off"></div>
+          <div class="field"><label for="key">API key (optional for Free)</label><input type="password" id="key" autocomplete="off" placeholder="Paste your key"></div>
+          <div class="row"><button class="btn primary" id="saveKey" type="button">Save</button><button class="btn ghost" id="delKey" type="button">Remove key</button></div>
+          <p class="note">Free mode needs no key but can be rate limited or change its rules; if it fails, math, time and local commands still work offline. The key is stored only in this browser (localStorage) and sent only to the provider you pick. Anyone using this browser profile can read it, so use a key with a spending limit and avoid shared computers.</p>
+        </section>
+        <section class="panel" aria-labelledby="prodH">
+          <h2 id="prodH">Productivity</h2>
+          <div class="field"><label for="taskIn">To-do list</label>
+            <div class="row" style="margin-top:0"><input type="text" id="taskIn" placeholder="Add a task"><button class="btn" id="taskAdd" type="button">Add</button></div></div>
+          <ul class="tasks" id="tasks"></ul>
+          <div class="field"><label for="mins">Timer (minutes)</label>
+            <div class="row" style="margin-top:0"><input type="text" id="mins" value="25" inputmode="decimal" style="width:70px;flex:none"><button class="btn" id="tStart" type="button">Start</button><button class="btn ghost" id="tStop" type="button">Stop</button><b id="clock" style="font:600 22px var(--head)">00:00</b></div></div>
+          <p class="note">Type <b>help</b> in the chat for every command.</p>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <footer>One AI runs entirely in your browser. Voice input works best in Chrome or Edge.</footer>
+</div>
+
+<script>
+"use strict";
+/* =====================================================================
+   One AI: single-file app. Sections:
+   1. Config  2. Helpers  3. Launcher  4. Local commands  5. LLM call
+   6. Console (run / log)  7. Voice  8. Settings  9. Copy / download code
+   ===================================================================== */
+
+/* ---------- 1. Config ---------- */
+const PLATFORMS = [
+  { name: "ChatGPT",    url: "https://chatgpt.com/",              note: "OpenAI",     color: "#10a37f" },
+  { name: "Claude",     url: "https://claude.ai/",                note: "Anthropic",  color: "#d28a5f" },
+  { name: "Gemini",     url: "https://gemini.google.com/",        note: "Google",     color: "#6b8cff" },
+  { name: "Perplexity", url: "https://www.perplexity.ai/",        note: "Answer engine", color: "#33b8c4" },
+  { name: "DeepSeek",   url: "https://chat.deepseek.com/",        note: "DeepSeek",   color: "#4d6bfe" },
+  { name: "Copilot",    url: "https://copilot.microsoft.com/",    note: "Microsoft",  color: "#a78bfa" }
+];
+const DEFAULT_MODEL = { free: "openai", openai: "gpt-4o-mini", gemini: "gemini-2.0-flash" };
+const SYSTEM_PROMPT = "You are One AI, a concise assistant inside a browser app. Reply in the same language the user wrote in (Hindi or English).";
+const EXAMPLES = ["Hello! Explain AI in two lines", "2*(3+4)", "what is the time", "upper: hello world", "todo: pay bill", "timer 5", "save note: buy milk", "ChatGPT खोलो", "help"];
+
+/* ---------- 2. Helpers ---------- */
+const $ = (s) => document.querySelector(s);
+
+/* localStorage wrapper: every call is guarded because storage can be blocked */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("oneai:" + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("oneai:" + k, JSON.stringify(v)); return true; } catch { return false; } },
+  del(k)    { try { localStorage.removeItem("oneai:" + k); } catch {} },
+  keys()    { try { return Object.keys(localStorage).filter(k => k.startsWith("oneai:")).map(k => k.slice(6)); } catch { return []; } }
+};
+
+/* ---------- 3. Launcher ---------- */
+PLATFORMS.forEach(p => {
+  const a = document.createElement("a");
+  a.className = "card"; a.href = p.url; a.target = "_blank"; a.rel = "noopener noreferrer";
+  a.style.setProperty("--c", p.color);
+  a.innerHTML = "<b></b><span></span>";
+  a.firstChild.textContent = p.name; a.lastChild.textContent = p.note;
+  $("#launchGrid").appendChild(a);
+});
+
+/* ---------- 4. Local commands ---------- */
+/* Text tools. "w" lists the trigger words (English + Hindi). */
+const TOOLS = {
+  upper:   { w: ["upper", "uppercase", "बड़े अक्षर"], fn: s => s.toUpperCase() },
+  lower:   { w: ["lower", "lowercase", "छोटे अक्षर"], fn: s => s.toLowerCase() },
+  title:   { w: ["title"], fn: s => s.toLowerCase().replace(/(^|\s)\S/g, m => m.toUpperCase()) },
+  reverse: { w: ["reverse", "उल्टा"], fn: s => [...s].reverse().join("") },
+  count:   { w: ["count", "गिनती"], fn: s => `${(s.trim().match(/\S+/g) || []).length} words, ${[...s].length} characters, ${s ? s.split("\n").length : 0} lines` },
+  dedupe:  { w: ["dedupe", "unique"], fn: s => [...new Set(s.split("\n"))].join("\n") },
+  sort:    { w: ["sort"], fn: s => s.split("\n").sort((a, b) => a.localeCompare(b)).join("\n") },
+  slug:    { w: ["slug"], fn: s => s.toLowerCase().trim().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "") },
+  emails:  { w: ["emails"], fn: s => (s.match(/[\w.+-]+@[\w-]+(\.[\w-]+)+/g) || ["No emails found."]).join("\n") },
+  urls:    { w: ["urls", "links"], fn: s => (s.match(/https?:\/\/[^\s)]+/g) || ["No links found."]).join("\n") },
+  numbers: { w: ["numbers"], fn: s => (s.match(/-?\d+(\.\d+)?/g) || ["No numbers found."]).join("\n") },
+  json:    { w: ["json"], fn: s => { try { return JSON.stringify(JSON.parse(s), null, 2); } catch (e) { return "Invalid JSON: " + e.message; } } },
+  b64:     { w: ["b64", "base64"], fn: s => btoa(unescape(encodeURIComponent(s))) },
+  unb64:   { w: ["unb64"], fn: s => { try { return decodeURIComponent(escape(atob(s.trim()))); } catch { return "That is not valid Base64."; } } }
+};
+
+const HELP = `Text tools (add a colon, then your text):
+upper, lower, title, reverse, count, dedupe, sort, slug, emails, urls, numbers, json, b64, unb64
+Hindi: बड़े अक्षर: ..., छोटे अक्षर: ..., उल्टा: ..., गिनती: ...
+
+Notes and storage:
+save note: text | notes | clear notes
+set key = value | get key | storage
+
+Web shortcuts:
+open ChatGPT | ChatGPT खोलो | open all | सभी खोलो
+open example.com | search: your query | youtube: your query
+
+Productivity:
+todo: text | todos | done 2 | timer 10 (minutes) | stop timer
+Math and time work offline: 2*(3+4), what is the time
+
+Anything else goes to the AI chat.`;
+
+/* Opens a link; returns false if the browser blocked the pop-up.
+   Voice commands are not "user clicks", so some browsers block them. */
+function openUrl(url) {
+  const w = window.open(url, "_blank", "noopener,noreferrer");
+  return !!w;
+}
+
+/* Find a platform mentioned in a string */
+function findPlatform(s) {
+  const t = s.toLowerCase();
+  return PLATFORMS.find(p => t.includes(p.name.toLowerCase()));
+}
+
+/* Returns {text, href?, err?} or null when the input is not a local command */
+function localCommand(text) {
+  const lower = text.toLowerCase().trim();
+
+  if (/^(help|मदद|सहायता)$/.test(lower)) return { text: HELP };
+
+  /* Text tools */
+  for (const t of Object.values(TOOLS)) {
+    for (const w of t.w) {
+      if (lower.startsWith(w) && /^(\s|:|-|$)/.test(lower.slice(w.length))) {
+        const arg = text.trim().slice(w.length).replace(/^\s*[:\-]?\s*/, "");
+        return { text: arg ? t.fn(arg) : "Add some text after the command, for example: " + w + ": your text" };
+      }
+    }
+  }
+
+  /* Notes */
+  let m = text.match(/^(?:save note|note|नोट सेव|नोट)\s*[:\-]\s*([\s\S]+)/i);
+  if (m) {
+    const notes = store.get("notes", []);
+    notes.push({ t: m[1].trim(), at: new Date().toLocaleString() });
+    return { text: store.set("notes", notes) ? `Saved note #${notes.length}.` : "Could not save: browser storage is blocked.", err: false };
+  }
+  if (/^(notes|नोट्स)$/.test(lower)) {
+    const notes = store.get("notes", []);
+    return { text: notes.length ? notes.map((n, i) => `${i + 1}. ${n.t}  (${n.at})`).join("\n") : "No notes yet. Try: save note: your text" };
+  }
+  if (/^(clear notes|नोट हटाओ)$/.test(lower)) { store.del("notes"); return { text: "All notes deleted." }; }
+
+  /* Key/value storage */
+  m = text.match(/^set\s+(\S+)\s*=\s*([\s\S]+)/i);
+  if (m) { return { text: store.set("kv:" + m[1], m[2]) ? `Stored "${m[1]}".` : "Could not save: browser storage is blocked." }; }
+  m = text.match(/^get\s+(\S+)$/i);
+  if (m) { const v = store.get("kv:" + m[1], null); return { text: v === null ? `Nothing stored under "${m[1]}".` : String(v) }; }
+  if (/^storage$/.test(lower)) {
+    const ks = store.keys().filter(k => k.startsWith("kv:")).map(k => k.slice(3));
+    return { text: ks.length ? "Stored keys: " + ks.join(", ") : "No keys stored. Try: set name = Asha" };
+  }
+
+  /* Web shortcuts: open all */
+  if (/^(open all|सभी खोलो|सब खोलो)$/.test(lower)) {
+    const blocked = PLATFORMS.filter(p => !openUrl(p.url)).length;
+    return { text: blocked ? "Your browser blocked some tabs. Allow pop-ups for this site, or use the launch buttons above." : "Opened all six." };
+  }
+  /* Search */
+  m = text.match(/^(?:search|google|सर्च|खोजो)\s*[:\-]?\s*([\s\S]+)/i);
+  if (m) { const u = "https://www.google.com/search?q=" + encodeURIComponent(m[1].trim()); return { text: openUrl(u) ? "Searching Google." : "Pop-up blocked. Open the link:", href: u }; }
+  m = text.match(/^youtube\s*[:\-]?\s*([\s\S]+)/i);
+  if (m) { const u = "https://www.youtube.com/results?search_query=" + encodeURIComponent(m[1].trim()); return { text: openUrl(u) ? "Searching YouTube." : "Pop-up blocked. Open the link:", href: u }; }
+  /* Open a platform or URL: "open X" or "X खोलो" */
+  m = text.match(/^(?:open|खोलो|खोलें)\s+(.+)$/i) || text.match(/^(.+?)\s+(?:खोलो|खोलिए|खोलें)$/i);
+  if (m) {
+    const target = m[1].trim(), p = findPlatform(target);
+    let url = p ? p.url : null;
+    if (!url && /^(https?:\/\/)?[\w-]+(\.[\w-]+)+(\/\S*)?$/.test(target)) url = /^https?:/.test(target) ? target : "https://" + target;
+    if (url) return { text: openUrl(url) ? `Opening ${p ? p.name : url}.` : "Pop-up blocked. Open the link:", href: url };
+  }
+  /* Productivity: to-dos and timer */
+  m = text.match(/^(?:todo|task|काम)\s*[:\-]\s*([\s\S]+)/i);
+  if (m) { addTask(m[1].trim()); return { text: "Task added." }; }
+  if (/^(todos|tasks|काम सूची)$/.test(lower)) return { text: tasks.length ? tasks.map((k, i) => `${i + 1}. [${k.done ? "x" : " "}] ${k.t}`).join("\n") : "No tasks yet. Try: todo: pay bill" };
+  m = lower.match(/^(?:done|हो गया)\s+(\d+)$/);
+  if (m && tasks[m[1] - 1]) { tasks[m[1] - 1].done = true; saveTasks(); return { text: "Marked task " + m[1] + " done." }; }
+  m = lower.match(/^(?:timer|टाइमर)\s+(\d+(?:\.\d+)?)/);
+  if (m) { startTimer(parseFloat(m[1])); return { text: `Timer set for ${m[1]} min.` }; }
+  if (/^(stop timer|टाइमर बंद)$/.test(lower)) { stopTimer(); return { text: "Timer stopped." }; }
+  return null; /* not local: fall through to the AI chat */
+}
+
+/* ---------- 5. AI chat backends ---------- */
+/* Any OpenAI-style endpoint (OpenAI itself, or Pollinations' free one) */
+async function openAICompat(url, key, model, messages) {
+  const headers = { "Content-Type": "application/json" };
+  if (key) headers.Authorization = "Bearer " + key;
+  const res = await fetch(url, { method: "POST", headers, body: JSON.stringify({ model, messages }) });
+  let data = {}; try { data = await res.json(); } catch {}
+  if (!res.ok) throw new Error(data.error?.message || (typeof data.error === "string" ? data.error : "") || "Request failed (" + res.status + ")");
+  return data.choices?.[0]?.message?.content?.trim() || "(empty reply)";
+}
+
+/* history = [{role, content}, ...] (the last few turns of the chat) */
+async function askLLM(history) {
+  const provider = store.get("provider", "free");
+  const key = store.get("key", "");
+  const model = store.get("model", "") || DEFAULT_MODEL[provider];
+  const msgs = [{ role: "system", content: SYSTEM_PROMPT }, ...history];
+
+  if (provider === "openai") {
+    if (!key) throw new Error("Add your OpenAI key under Your AI key.");
+    return openAICompat("https://api.openai.com/v1/chat/completions", key, model, msgs);
+  }
+  if (provider === "gemini") {
+    if (!key) throw new Error("Add your Gemini key under Your AI key.");
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents: history.map(m => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] }))
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || "Gemini error " + res.status);
+    return (data.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("").trim() || "(empty reply)";
+  }
+  /* Free mode: anonymous Pollinations endpoint, or the keyed one if you pasted a free Pollinations key */
+  return key
+    ? openAICompat("https://gen.pollinations.ai/v1/chat/completions", key, model, msgs)
+    : openAICompat("https://text.pollinations.ai/openai", "", model, msgs);
+}
+
+/* ---------- 6. Chat console ---------- */
+const log = $("#log");
+let chat = store.get("chat", []);             /* [{role: "user" | "assistant", content}] saved in localStorage */
+function addEntry(kind, text, href) {
+  const empty = log.querySelector(".empty"); if (empty) empty.remove();
+  const d = document.createElement("div");
+  d.className = "entry " + kind;
+  d.textContent = text;                       /* textContent: never render AI output as HTML */
+  if (href) { d.append(" "); const a = document.createElement("a"); a.href = href; a.target = "_blank"; a.rel = "noopener noreferrer"; a.textContent = href; d.append(a); }
+  log.appendChild(d); log.scrollTop = log.scrollHeight;
+}
+function setStatus(s) { $("#status").textContent = s; }
+
+/* Tiny offline brain: math, time, date and greetings need no network */
+function offlineReply(text) {
+  const t = text.trim(), l = t.toLowerCase();
+  if (/^[\d\s+\-*/().%]+$/.test(t) && /\d/.test(t)) { try { return String(Function('"use strict";return (' + t + ")")()); } catch {} }
+  if (/\b(time|समय)\b/.test(l)) return new Date().toLocaleTimeString();
+  if (/\b(date|today|तारीख)\b/.test(l)) return new Date().toLocaleDateString(undefined, { dateStyle: "full" });
+  return null;
+}
+
+async function run(raw) {
+  const text = (raw || "").trim();
+  if (!text) { setStatus("Type or speak a message first."); return; }
+  addEntry("you", text);
+  chat.push({ role: "user", content: text });
+  let out;
+  try {
+    out = localCommand(text);
+    if (!out) { const off = offlineReply(text); if (off) out = { text: off }; }
+    if (!out) {
+      setStatus("Thinking…");
+      try { out = { text: await askLLM(chat.slice(-12)) }; }
+      catch (e) { out = { text: "The AI is not available: " + (e.message || e) + "\nLocal commands still work. Type help.", err: true }; }
+    }
+  } catch (e) { out = { text: String(e.message || e), err: true }; }
+  addEntry(out.err ? "ai err" : "ai", out.text, out.href);
+  chat.push({ role: "assistant", content: out.text });
+  store.set("chat", chat.slice(-40));
+  if ($("#speakOn").checked && !out.err) speak(out.text);
+  setStatus("Ready");
+}
+function sendBox() { const v = $("#prompt").value; $("#prompt").value = ""; run(v); }
+$("#run").onclick = sendBox;
+$("#prompt").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); sendBox(); } });
+$("#newChat").onclick = () => { chat = []; store.del("chat"); log.innerHTML = '<p class="empty">New chat. Say hello to start.</p>'; };
+chat.forEach(m => addEntry(m.role === "user" ? "you" : "ai", m.content));
+EXAMPLES.forEach(x => { const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = x; b.onclick = () => { $("#prompt").value = x; $("#prompt").focus(); }; $("#chips").appendChild(b); });
+
+/* ---------- 6b. Productivity: to-do list + timer ---------- */
+let tasks = store.get("tasks", []);           /* [{t, done}] */
+function saveTasks() { store.set("tasks", tasks); renderTasks(); }
+function addTask(t) { tasks.push({ t, done: false }); saveTasks(); }
+function renderTasks() {
+  const ul = $("#tasks"); ul.textContent = "";
+  if (!tasks.length) { const li = document.createElement("li"); li.className = "empty"; li.textContent = "No tasks yet."; ul.appendChild(li); return; }
+  tasks.forEach((k, i) => {
+    const li = document.createElement("li"), cb = document.createElement("input"), sp = document.createElement("span"), x = document.createElement("button");
+    cb.type = "checkbox"; cb.checked = k.done; cb.setAttribute("aria-label", "Done"); cb.onchange = () => { k.done = cb.checked; saveTasks(); };
+    sp.textContent = k.t; if (k.done) sp.style.textDecoration = "line-through";
+    x.type = "button"; x.className = "chip"; x.textContent = "Remove"; x.onclick = () => { tasks.splice(i, 1); saveTasks(); };
+    li.append(cb, sp, x); ul.appendChild(li);
+  });
+}
+let timerId = null, endAt = 0;
+function startTimer(min) { stopTimer(); endAt = Date.now() + min * 60000; timerId = setInterval(tick, 500); tick(); }
+function stopTimer() { clearInterval(timerId); timerId = null; $("#clock").textContent = "00:00"; }
+function tick() {
+  const left = Math.max(0, endAt - Date.now()), s = Math.ceil(left / 1000);
+  $("#clock").textContent = String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+  if (!left) { stopTimer(); $("#clock").textContent = "Done"; addEntry("ai", "Timer finished."); speak("Timer finished. समय पूरा हुआ."); if (navigator.vibrate) navigator.vibrate(400); }
+}
+$("#taskAdd").onclick = () => { const v = $("#taskIn").value.trim(); if (v) { addTask(v); $("#taskIn").value = ""; } };
+$("#taskIn").addEventListener("keydown", e => { if (e.key === "Enter") $("#taskAdd").click(); });
+$("#tStart").onclick = () => startTimer(parseFloat($("#mins").value) || 25);
+$("#tStop").onclick = stopTimer;
+renderTasks();
+
+/* ---------- 7. Voice (Web Speech API) ---------- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null, listening = false;
+
+function speak(text) {
+  if (!("speechSynthesis" in window) || !text) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text.slice(0, 500));
+  u.lang = /[\u0900-\u097F]/.test(text) ? "hi-IN" : $("#lang").value;   /* Devanagari text is read in Hindi */
+  speechSynthesis.speak(u);
+}
+
+function startVoice() {
+  if (!SR) { setStatus("Voice input is not supported in this browser. Try Chrome or Edge."); return; }
+  rec = new SR();
+  rec.lang = $("#lang").value; rec.interimResults = true; rec.continuous = false;
+  let finalText = "";
+  rec.onstart = () => { listening = true; $("#mic").classList.add("on"); setStatus("Listening…"); };
+  rec.onresult = (e) => {
+    let t = "";
+    for (let i = 0; i < e.results.length; i++) { t += e.results[i][0].transcript; if (e.results[i].isFinal) finalText = t; }
+    $("#prompt").value = t;
+  };
+  rec.onerror = (e) => setStatus(e.error === "not-allowed" ? "Microphone blocked. Allow mic access for this site." : "Voice error: " + e.error);
+  rec.onend = () => {
+    listening = false; $("#mic").classList.remove("on");
+    if (finalText && $("#autoRun").checked) { run(finalText); $("#prompt").value = ""; }
+    else if (!finalText) setStatus("Ready");
+  };
+  try { rec.start(); } catch { /* already started */ }
+}
+$("#mic").onclick = () => listening ? rec.stop() : startVoice();
+$("#stop").onclick = () => { if (listening && rec) rec.stop(); if ("speechSynthesis" in window) speechSynthesis.cancel(); setStatus("Ready"); };
+$("#lang").onchange = (e) => store.set("lang", e.target.value);
+
+/* ---------- 8. Settings ---------- */
+function loadSettings() {
+  $("#provider").value = store.get("provider", "free");
+  $("#model").value = store.get("model", "") || DEFAULT_MODEL[$("#provider").value];
+  $("#key").value = store.get("key", "");
+  $("#lang").value = store.get("lang", "hi-IN");
+}
+$("#provider").onchange = () => {
+  const cur = $("#model").value.trim();
+  if (!cur || Object.values(DEFAULT_MODEL).includes(cur)) $("#model").value = DEFAULT_MODEL[$("#provider").value];
+};
+$("#saveKey").onclick = () => {
+  store.set("provider", $("#provider").value);
+  store.set("model", $("#model").value.trim());
+  store.set("key", $("#key").value.trim());
+  setStatus("Settings saved in this browser.");
+};
+$("#delKey").onclick = () => { store.del("key"); $("#key").value = ""; setStatus("Key removed."); };
+loadSettings();
+
+/* ---------- 9. Copy / download this page's code ---------- */
+/* Fetch the original file text so the copy is exact; fall back to the live DOM (e.g. when opened from file://) */
+async function getSource() {
+  try { const r = await fetch(location.href.split("#")[0], { cache: "no-store" }); if (r.ok) return await r.text(); } catch {}
+  return "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+}
+function flash(btn, label) {
+  const old = btn.textContent; btn.textContent = label; btn.classList.add("ok");
+  setTimeout(() => { btn.textContent = old; btn.classList.remove("ok"); }, 1600);
+}
+$("#copyCode").onclick = async (e) => {
+  const src = await getSource();
+  try { await navigator.clipboard.writeText(src); }
+  catch { const t = document.createElement("textarea"); t.value = src; document.body.appendChild(t); t.select(); document.execCommand("copy"); t.remove(); }
+  flash(e.currentTarget, "Copied");
+};
+$("#dlCode").onclick = async (e) => {
+  const blob = new Blob([await getSource()], { type: "text/html" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "index.html"; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  flash(e.currentTarget, "Downloaded");
+};
+
+/* ---------- 10. Offline support (used when installed as an app) ---------- */
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js").catch(() => {});
+</script>
+</body>
+</html>
